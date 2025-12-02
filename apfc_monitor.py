@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Modbus configuration
-COM_PORT = os.getenv('COM_PORT', 'COM10')
+COM_PORT = os.getenv('COM_PORT', '/dev/ttyUSB0')  # Default to Linux serial port
 BAUD_RATE = int(os.getenv('BAUD_RATE', '9600'))
 SLAVE_ID = int(os.getenv('SLAVE_ID', '1'))
 TIMEOUT = 2

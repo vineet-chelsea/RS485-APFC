@@ -1,0 +1,18 @@
+[Unit]
+Description=APFC Relay Monitoring Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/RS485-APFC
+Environment="PATH=/home/pi/RS485-APFC/venv/bin"
+ExecStart=/home/pi/RS485-APFC/venv/bin/python3 /home/pi/RS485-APFC/apfc_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/apfc-monitor.log
+StandardError=append:/var/log/apfc-monitor-error.log
+
+[Install]
+WantedBy=multi-user.target
+
