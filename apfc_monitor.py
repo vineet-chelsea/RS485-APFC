@@ -11,14 +11,13 @@ import math
 from datetime import datetime
 from collections import deque
 from pymodbus.client import ModbusSerialClient
-from pymodbus.payload import BinaryPayloadDecoder, BinaryPayloadBuilder
-from pymodbus.constants import Endian
+import struct
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # Modbus configuration
-COM_PORT = os.getenv('COM_PORT', '/dev/ttyUSB0')  # Default to Linux serial port
+COM_PORT = os.getenv('COM_PORT', '/dev/ttyACM0')  # Default to Linux serial port
 BAUD_RATE = int(os.getenv('BAUD_RATE', '9600'))
 SLAVE_ID = int(os.getenv('SLAVE_ID', '1'))
 TIMEOUT = 2
@@ -78,12 +77,12 @@ class APFCMonitorService:
             
             if result and not result.isError():
                 # Decode as 32-bit float (IEEE 754)
-                decoder = BinaryPayloadDecoder.fromRegisters(
-                    result.registers,
-                    byteorder=Endian.BIG,
-                    wordorder=Endian.BIG
-                )
-                float_value = decoder.decode_32bit_float()
+                # Combine two 16-bit registers into 32-bit float (big-endian)
+                high_word = result.registers[0]
+                low_word = result.registers[1]
+                # Pack as two 16-bit words (big-endian) then unpack as float
+                raw_bytes = struct.pack('>HH', high_word, low_word)
+                float_value = struct.unpack('>f', raw_bytes)[0]
                 return round(float_value, 3)
             return None
         except Exception as e:
@@ -112,9 +111,12 @@ class APFCMonitorService:
         Floats in Modbus are typically 32-bit IEEE 754, requiring 2 registers
         """
         try:
-            builder = BinaryPayloadBuilder(byteorder=Endian.BIG, wordorder=Endian.BIG)
-            builder.add_32bit_float(float_value)
-            payload = builder.to_registers()
+            # Pack float as 32-bit IEEE 754 (big-endian)
+            raw_bytes = struct.pack('>f', float_value)
+            # Split into two 16-bit words (big-endian)
+            high_word = struct.unpack('>H', raw_bytes[0:2])[0]
+            low_word = struct.unpack('>H', raw_bytes[2:4])[0]
+            payload = [high_word, low_word]
             
             result = self.plc_client.write_registers(
                 register_address,
