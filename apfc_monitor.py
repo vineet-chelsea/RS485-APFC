@@ -123,27 +123,19 @@ class APFCMonitorService:
             
             if result and not result.isError():
                 # Decode as 32-bit float (IEEE 754)
-                # Modbus typically uses CDAB word order (word swap)
-                # First register is low word, second is high word
-                low_word = result.registers[0]
-                high_word = result.registers[1]
+                # Modbus floating point: Most Significant Register First (ABCD order)
+                # First register is high word (most significant), second is low word
+                high_word = result.registers[0]
+                low_word = result.registers[1]
                 # Pack as two 16-bit words (big-endian) then unpack as float
                 raw_bytes = struct.pack('>HH', high_word, low_word)
                 float_value = struct.unpack('>f', raw_bytes)[0]
                 
                 # Validate the float value (check for reasonable range)
-                if not (math.isfinite(float_value) and abs(float_value) < 1e10):
-                    # If value is garbage, try reverse word order (ABCD)
-                    high_word = result.registers[0]
-                    low_word = result.registers[1]
-                    raw_bytes = struct.pack('>HH', high_word, low_word)
-                    float_value = struct.unpack('>f', raw_bytes)[0]
-                
-                # Final validation
                 if math.isfinite(float_value) and abs(float_value) < 1e10:
                     return round(float_value, 3)
                 else:
-                    # Still garbage, return None
+                    # Invalid value, return None
                     return None
             return None
         except Exception as e:
@@ -177,9 +169,9 @@ class APFCMonitorService:
             # Split into two 16-bit words (big-endian)
             high_word = struct.unpack('>H', raw_bytes[0:2])[0]
             low_word = struct.unpack('>H', raw_bytes[2:4])[0]
-            # Modbus typically uses CDAB word order (word swap)
-            # Write low word first, then high word
-            payload = [low_word, high_word]
+            # Modbus floating point: Most Significant Register First (ABCD order)
+            # Write high word first (most significant), then low word
+            payload = [high_word, low_word]
             
             # Try different parameter names for different pymodbus versions
             try:
@@ -251,20 +243,34 @@ class APFCMonitorService:
         if voltage is None or current is None or power_factor is None:
             return False
         
+        # Validate voltage to prevent division by zero
+        if voltage is None or voltage == 0 or abs(voltage) < 0.1:
+            print(f"[CONTROL] Skipping control: voltage is invalid ({voltage})")
+            return False
+        
         # Calculate kW
         kw = self.calculate_kw(voltage, current, power_factor)
         if kw is None:
             return False
         
+        # Additional safety check - ensure voltage is still valid after kW calculation
+        if voltage == 0 or abs(voltage) < 0.1:
+            print(f"[CONTROL] Skipping control: voltage became invalid ({voltage})")
+            return False
+        
         # Calculate threshold current based on kW
         sqrt3 = math.sqrt(3)
         
-        if kw < KW_THRESHOLD:
-            # Case 1: kW < 56000
-            threshold_current = (kw / voltage / sqrt3) + 28 + (voltage - 404) * 2
-        else:
-            # Case 2: kW >= 56000
-            threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
+        try:
+            if kw < KW_THRESHOLD:
+                # Case 1: kW < 56000
+                threshold_current = (kw / voltage / sqrt3) + 28 + (voltage - 404) * 2
+            else:
+                # Case 2: kW >= 56000
+                threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
+        except ZeroDivisionError:
+            print(f"[CONTROL] Division by zero error: voltage={voltage}, kw={kw}")
+            return False
         
         # Adjust PF based on current comparison (reversed logic since PF tends to 1)
         new_pf = self.current_set_pf
@@ -384,11 +390,19 @@ class APFCMonitorService:
                         if self.control_count >= CONTROL_INTERVAL:
                             self.control_count = 0
                             # Execute PF control logic (only if we have valid readings)
-                            if voltage is not None and current is not None and power_factor is not None:
+                            # Ensure voltage is not None, not zero, and reasonable (> 100V)
+                            if (voltage is not None and current is not None and power_factor is not None and
+                                voltage != 0 and abs(voltage) >= 100):  # Ensure voltage is valid and reasonable
                                 try:
                                     self.control_power_factor(voltage, current, power_factor)
+                                except ZeroDivisionError as e:
+                                    print(f"[ERROR] Division by zero in control logic: voltage={voltage}, current={current}, pf={power_factor}")
+                                    import traceback
+                                    traceback.print_exc()
                                 except Exception as e:
                                     print(f"[ERROR] Control logic error: {e}")
+                                    import traceback
+                                    traceback.print_exc()
                         
                         # Calculate and display kW
                         kw = self.calculate_kw(voltage, current, power_factor)
