@@ -41,6 +41,7 @@ nano .env
 ```
 
 Common serial ports on Raspberry Pi:
+- `/dev/ttyACM0` - USB CDC/ACM device (common for USB adapters)
 - `/dev/ttyUSB0` - USB to Serial adapter
 - `/dev/ttyAMA0` - GPIO serial (UART)
 - `/dev/ttyS0` - Serial port
@@ -91,7 +92,7 @@ sudo systemctl enable apfc-monitor
 ### Service won't start
 1. Check logs: `sudo journalctl -u apfc-monitor -n 50`
 2. Verify .env file exists and has correct COM_PORT
-3. Check serial port permissions: `ls -l /dev/ttyUSB0`
+3. Check serial port permissions: `ls -l /dev/ttyACM0`
 4. Add user to dialout group: `sudo usermod -a -G dialout $USER` (then logout/login)
 
 ### Permission denied on serial port
