@@ -47,11 +47,20 @@ pip install --upgrade pip
 pip install -r requirements.txt
 echo "Dependencies installed"
 
+echo -e "${GREEN}[3.5/8] Adding user to dialout group for serial port access...${NC}"
+CURRENT_USER=${SUDO_USER:-$USER}
+if ! groups $CURRENT_USER | grep -q dialout; then
+    sudo usermod -a -G dialout $CURRENT_USER
+    echo -e "${YELLOW}User added to dialout group. You may need to logout/login or reboot for changes to take effect.${NC}"
+else
+    echo "User already in dialout group"
+fi
+
 echo -e "${GREEN}[4/8] Creating .env file if it doesn't exist...${NC}"
 if [ ! -f ".env" ]; then
     cat > .env << EOF
 # Modbus Configuration
-COM_PORT=/dev/ttyUSB0
+COM_PORT=/dev/ttyACM0
 BAUD_RATE=9600
 SLAVE_ID=1
 EOF

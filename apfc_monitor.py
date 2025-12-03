@@ -42,6 +42,31 @@ KW_THRESHOLD = 56000  # kW threshold for different control logic
 class APFCMonitorService:
     def __init__(self):
         """Initialize APFC monitoring service"""
+        # Check if port exists
+        if not os.path.exists(COM_PORT):
+            print(f"[ERROR] Serial port {COM_PORT} does not exist!")
+            print(f"[INFO] Available serial ports:")
+            import glob
+            ports = glob.glob('/dev/tty[A-Z]*')
+            if ports:
+                for p in sorted(ports):
+                    print(f"  - {p}")
+            else:
+                print("  No serial ports found")
+            print(f"\n[INFO] To fix:")
+            print(f"  1. Check if device is connected")
+            print(f"  2. Check .env file has correct COM_PORT")
+            print(f"  3. Run: ls -l /dev/tty* to see available ports")
+            raise FileNotFoundError(f"Serial port {COM_PORT} not found")
+        
+        # Check port permissions
+        if not os.access(COM_PORT, os.R_OK | os.W_OK):
+            print(f"[ERROR] Permission denied accessing {COM_PORT}")
+            print(f"[INFO] To fix, add user to dialout group:")
+            print(f"  sudo usermod -a -G dialout $USER")
+            print(f"  Then logout and login again (or reboot)")
+            raise PermissionError(f"Permission denied for {COM_PORT}")
+        
         # Initialize PLC client (shared connection)
         self.plc_client = ModbusSerialClient(
             port=COM_PORT,
@@ -255,8 +280,22 @@ class APFCMonitorService:
         print(f"{'='*60}\n")
         
         # Connect to PLC
-        if not self.plc_client.connect():
-            print(f"[ERROR] Failed to connect to APFC relay on {COM_PORT}")
+        print(f"[INFO] Attempting to connect to {COM_PORT}...")
+        try:
+            if not self.plc_client.connect():
+                print(f"[ERROR] Failed to connect to APFC relay on {COM_PORT}")
+                print(f"[INFO] Troubleshooting:")
+                print(f"  1. Check if device is connected: ls -l {COM_PORT}")
+                print(f"  2. Check permissions: ls -l {COM_PORT}")
+                print(f"  3. Check if port is in use: lsof {COM_PORT}")
+                print(f"  4. Add user to dialout: sudo usermod -a -G dialout $USER")
+                return
+        except Exception as e:
+            print(f"[ERROR] Connection error: {e}")
+            print(f"[INFO] Check:")
+            print(f"  - Port exists: ls -l {COM_PORT}")
+            print(f"  - Permissions: sudo chmod 666 {COM_PORT} (temporary fix)")
+            print(f"  - User in dialout group: groups")
             return
         
         print(f"[OK] Connected to APFC relay on {COM_PORT}\n")
