@@ -343,7 +343,7 @@ class APFCMonitorService:
         print(f"Reading APFC parameters every {READ_INTERVAL} second")
         print(f"Control logic runs every {CONTROL_INTERVAL} seconds")
         print(f"Registers: PF={PF_REGISTER}, Current={CURRENT_REGISTER}, Voltage={VOLTAGE_REGISTER}, Set PF={SET_PF_REGISTER}")
-        print(f"PF Control: Initial={INITIAL_PF}, Min={MIN_PF}, Step={PF_STEP}, kW Threshold={KW_THRESHOLD}")
+        print(f"PF Control: Initial={INITIAL_PF}, Min={MIN_PF}, Step={PF_STEP}, kW Threshold={KW_THRESHOLD}, Min kW={KW_MIN_THRESHOLD}")
         print(f"{'='*60}\n")
         
         # Connect to PLC
