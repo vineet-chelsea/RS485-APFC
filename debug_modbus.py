@@ -16,10 +16,10 @@ BAUD_RATE = int(os.getenv('BAUD_RATE', '9600'))
 SLAVE_ID = int(os.getenv('SLAVE_ID', '1'))
 
 # Register addresses
-PF_REGISTER = 2
-CURRENT_REGISTER = 32
-VOLTAGE_REGISTER = 38
-SET_PF_REGISTER = 62
+PF_REGISTER = 0
+CURRENT_REGISTER = 30
+VOLTAGE_REGISTER = 36
+SET_PF_REGISTER = 118
 
 def read_raw_registers(client, address, count=2, unit_id=1):
     """Read raw register values"""
