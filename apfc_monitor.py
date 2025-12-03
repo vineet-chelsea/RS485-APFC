@@ -38,6 +38,7 @@ INITIAL_PF = -0.8  # Initial PF value when program starts
 MIN_PF = -0.9      # Minimum PF limit (restricted to -0.9 at upwards)
 PF_STEP = 0.01     # PF adjustment step
 KW_THRESHOLD = 56000  # kW threshold for different control logic
+KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
 
 class APFCMonitorService:
     def __init__(self):
@@ -231,7 +232,8 @@ class APFCMonitorService:
         (Reversed logic since PF tends to 1 in reality)
         
         Logic:
-        1. If kW < 56000:
+        - If kW < 5000: Set PF to -0.8 and skip control
+        1. If kW >= 5000 and kW < 56000:
            - If I < (kw/V/SQRT(3)+28+(V-404)*2): pf += 0.01
            - If I > (kw/V/SQRT(3)+28+(V-404)*2): pf -= 0.01
         2. If kW >= 56000:
@@ -254,6 +256,13 @@ class APFCMonitorService:
         # Additional safety check - ensure voltage is still valid after kW calculation
         if voltage == 0 or abs(voltage) < 0.1:
             print(f"[CONTROL] Skipping control: voltage became invalid ({voltage})")
+            return False
+        
+        # If kW < 5000, set PF to -0.8 and skip control logic
+        if kw < KW_MIN_THRESHOLD:
+            if abs(self.current_set_pf - INITIAL_PF) > 0.001:
+                print(f"[CONTROL] kW ({kw:.2f}) < {KW_MIN_THRESHOLD}, setting PF to {INITIAL_PF}")
+                self.set_power_factor(INITIAL_PF)
             return False
         
         # Calculate threshold current based on kW
