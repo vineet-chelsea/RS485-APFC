@@ -43,7 +43,7 @@ def decode_float_abcd(registers):
     return struct.unpack('>f', raw_bytes)[0]
 
 def decode_float_cdab(registers):
-    """Decode float using CDAB order (word swap)"""
+    """Decode float using CDAB order (word swap) - CORRECT FOR THIS DEVICE"""
     low_word = registers[0]
     high_word = registers[1]
     raw_bytes = struct.pack('>HH', high_word, low_word)
@@ -100,7 +100,7 @@ for name, addr in registers_to_test:
         val_abcd = decode_float_abcd(regs)
         val_cdab = decode_float_cdab(regs)
         print(f"              ABCD decode: {val_abcd:12.6f}")
-        print(f"              CDAB decode: {val_cdab:12.6f}")
+        print(f"              CDAB decode: {val_cdab:12.6f} ✓ (CORRECT)")
     else:
         print(f"{name:12} (addr {addr:2d}): FAILED to read")
     print()
@@ -115,18 +115,18 @@ encoded_cdab = encode_float_cdab(test_value)
 
 print(f"Value to write: {test_value}")
 print(f"ABCD encoding: [{encoded_abcd[0]}, {encoded_abcd[1]}] (0x{encoded_abcd[0]:04X}, 0x{encoded_abcd[1]:04X})")
-print(f"CDAB encoding: [{encoded_cdab[0]}, {encoded_cdab[1]}] (0x{encoded_cdab[0]:04X}, 0x{encoded_cdab[1]:04X})")
+print(f"CDAB encoding: [{encoded_cdab[0]}, {encoded_cdab[1]}] (0x{encoded_cdab[0]:04X}, 0x{encoded_cdab[1]:04X}) ✓ (CORRECT)")
 print()
 
-# Try writing with ABCD
-print("Writing with ABCD order...")
+# Try writing with CDAB (correct for this device)
+print("Writing with CDAB order (word swap)...")
 try:
-    result = client.write_registers(SET_PF_REGISTER, encoded_abcd, slave=SLAVE_ID)
+    result = client.write_registers(SET_PF_REGISTER, encoded_cdab, slave=SLAVE_ID)
 except TypeError:
     try:
-        result = client.write_registers(SET_PF_REGISTER, encoded_abcd, unit=SLAVE_ID)
+        result = client.write_registers(SET_PF_REGISTER, encoded_cdab, unit=SLAVE_ID)
     except TypeError:
-        result = client.write_registers(SET_PF_REGISTER, encoded_abcd)
+        result = client.write_registers(SET_PF_REGISTER, encoded_cdab)
 
 if result and not result.isError():
     print("Write successful!")

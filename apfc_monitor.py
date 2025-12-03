@@ -123,10 +123,10 @@ class APFCMonitorService:
             
             if result and not result.isError():
                 # Decode as 32-bit float (IEEE 754)
-                # Modbus floating point: Most Significant Register First (ABCD order)
-                # First register is high word (most significant), second is low word
-                high_word = result.registers[0]
-                low_word = result.registers[1]
+                # Modbus floating point: CDAB order (word swap)
+                # First register is low word, second register is high word
+                low_word = result.registers[0]
+                high_word = result.registers[1]
                 # Pack as two 16-bit words (big-endian) then unpack as float
                 raw_bytes = struct.pack('>HH', high_word, low_word)
                 float_value = struct.unpack('>f', raw_bytes)[0]
@@ -169,9 +169,9 @@ class APFCMonitorService:
             # Split into two 16-bit words (big-endian)
             high_word = struct.unpack('>H', raw_bytes[0:2])[0]
             low_word = struct.unpack('>H', raw_bytes[2:4])[0]
-            # Modbus floating point: Most Significant Register First (ABCD order)
-            # Write high word first (most significant), then low word
-            payload = [high_word, low_word]
+            # Modbus floating point: CDAB order (word swap)
+            # Write low word first, then high word
+            payload = [low_word, high_word]
             
             # Try different parameter names for different pymodbus versions
             try:
