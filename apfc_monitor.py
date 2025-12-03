@@ -123,13 +123,28 @@ class APFCMonitorService:
             
             if result and not result.isError():
                 # Decode as 32-bit float (IEEE 754)
-                # Combine two 16-bit registers into 32-bit float (big-endian)
-                high_word = result.registers[0]
-                low_word = result.registers[1]
+                # Modbus typically uses CDAB word order (word swap)
+                # First register is low word, second is high word
+                low_word = result.registers[0]
+                high_word = result.registers[1]
                 # Pack as two 16-bit words (big-endian) then unpack as float
                 raw_bytes = struct.pack('>HH', high_word, low_word)
                 float_value = struct.unpack('>f', raw_bytes)[0]
-                return round(float_value, 3)
+                
+                # Validate the float value (check for reasonable range)
+                if not (math.isfinite(float_value) and abs(float_value) < 1e10):
+                    # If value is garbage, try reverse word order (ABCD)
+                    high_word = result.registers[0]
+                    low_word = result.registers[1]
+                    raw_bytes = struct.pack('>HH', high_word, low_word)
+                    float_value = struct.unpack('>f', raw_bytes)[0]
+                
+                # Final validation
+                if math.isfinite(float_value) and abs(float_value) < 1e10:
+                    return round(float_value, 3)
+                else:
+                    # Still garbage, return None
+                    return None
             return None
         except Exception as e:
             print(f"[ERROR] Failed to read register {register_address}: {e}")
@@ -162,7 +177,9 @@ class APFCMonitorService:
             # Split into two 16-bit words (big-endian)
             high_word = struct.unpack('>H', raw_bytes[0:2])[0]
             low_word = struct.unpack('>H', raw_bytes[2:4])[0]
-            payload = [high_word, low_word]
+            # Modbus typically uses CDAB word order (word swap)
+            # Write low word first, then high word
+            payload = [low_word, high_word]
             
             # Try different parameter names for different pymodbus versions
             try:
@@ -348,48 +365,66 @@ class APFCMonitorService:
         
         try:
             while True:
-                # Read all parameters
-                power_factor = self.read_power_factor()
-                current = self.read_current()
-                voltage = self.read_voltage()
-                set_pf = self.read_set_pf()
-                
-                if power_factor is not None or current is not None or voltage is not None:
-                    reading_count += 1
-                    timestamp = datetime.now().strftime("%H:%M:%S")
+                try:
+                    # Read all parameters
+                    power_factor = self.read_power_factor()
+                    current = self.read_current()
+                    voltage = self.read_voltage()
+                    set_pf = self.read_set_pf()
                     
-                    # Update history arrays (keeps last 10 values)
-                    self.update_history(power_factor, current, voltage, set_pf)
+                    if power_factor is not None or current is not None or voltage is not None:
+                        reading_count += 1
+                        timestamp = datetime.now().strftime("%H:%M:%S")
+                        
+                        # Update history arrays (keeps last 10 values)
+                        self.update_history(power_factor, current, voltage, set_pf)
+                        
+                        # Run control logic every CONTROL_INTERVAL seconds
+                        self.control_count += 1
+                        if self.control_count >= CONTROL_INTERVAL:
+                            self.control_count = 0
+                            # Execute PF control logic (only if we have valid readings)
+                            if voltage is not None and current is not None and power_factor is not None:
+                                try:
+                                    self.control_power_factor(voltage, current, power_factor)
+                                except Exception as e:
+                                    print(f"[ERROR] Control logic error: {e}")
+                        
+                        # Calculate and display kW
+                        kw = self.calculate_kw(voltage, current, power_factor)
+                        kw_str = f"{kw:.2f}" if kw is not None else "N/A"
+                        
+                        # Display
+                        pf_str = f"{power_factor:.3f}" if power_factor is not None else "N/A"
+                        current_str = f"{current:.3f}" if current is not None else "N/A"
+                        voltage_str = f"{voltage:.3f}" if voltage is not None else "N/A"
+                        set_pf_str = f"{set_pf:.3f}" if set_pf is not None else "N/A"
+                        
+                        print(f"[{timestamp}] Reading #{reading_count} - "
+                              f"PF: {pf_str} | Current: {current_str} A | "
+                              f"Voltage: {voltage_str} V | Set PF: {set_pf_str} | kW: {kw_str}")
+                    else:
+                        print(f"[WARNING] Failed to read values from APFC relay")
                     
-                    # Run control logic every CONTROL_INTERVAL seconds
-                    self.control_count += 1
-                    if self.control_count >= CONTROL_INTERVAL:
-                        self.control_count = 0
-                        # Execute PF control logic
-                        self.control_power_factor(voltage, current, power_factor)
+                    time.sleep(READ_INTERVAL)
                     
-                    # Calculate and display kW
-                    kw = self.calculate_kw(voltage, current, power_factor)
-                    kw_str = f"{kw:.2f}" if kw is not None else "N/A"
-                    
-                    # Display
-                    pf_str = f"{power_factor:.3f}" if power_factor is not None else "N/A"
-                    current_str = f"{current:.3f}" if current is not None else "N/A"
-                    voltage_str = f"{voltage:.3f}" if voltage is not None else "N/A"
-                    set_pf_str = f"{set_pf:.3f}" if set_pf is not None else "N/A"
-                    
-                    print(f"[{timestamp}] Reading #{reading_count} - "
-                          f"PF: {pf_str} | Current: {current_str} A | "
-                          f"Voltage: {voltage_str} V | Set PF: {set_pf_str} | kW: {kw_str}")
-                else:
-                    print(f"[WARNING] Failed to read values from APFC relay")
-                
-                time.sleep(READ_INTERVAL)
+                except Exception as e:
+                    print(f"[ERROR] Error in main loop: {e}")
+                    print(f"[INFO] Continuing after error...")
+                    time.sleep(READ_INTERVAL)
+                    continue
                 
         except KeyboardInterrupt:
             print("\n[STOPPED] Service stopped by user")
+        except Exception as e:
+            print(f"\n[FATAL ERROR] Service crashed: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
-            self.plc_client.close()
+            try:
+                self.plc_client.close()
+            except:
+                pass
             print("\n[OK] Service stopped")
 
 def main():
