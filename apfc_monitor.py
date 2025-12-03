@@ -124,11 +124,9 @@ class APFCMonitorService:
             if result and not result.isError():
                 # Decode as 32-bit float (IEEE 754)
                 # Modbus floating point: CDAB order (word swap)
-                # First register is low word, second register is high word
-                low_word = result.registers[0]
-                high_word = result.registers[1]
-                # Pack as two 16-bit words (big-endian) then unpack as float
-                raw_bytes = struct.pack('>HH', high_word, low_word)
+                # Swap the register order: use register[1] first, then register[0]
+                # This is equivalent to: low_word = reg[0], high_word = reg[1], pack(high, low)
+                raw_bytes = struct.pack('>HH', result.registers[1], result.registers[0])
                 float_value = struct.unpack('>f', raw_bytes)[0]
                 
                 # Validate the float value (check for reasonable range)

@@ -14,11 +14,13 @@ from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialC
 from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(2, 2, slave=1); b = struct.pack('>HH', r.registers[0], r.registers[1]); f = struct.unpack('>f', b)[0]; print(f"Value: {f}"); c.close()
 ```
 
-### 3. Decode Float (CDAB order - word swap)
+### 3. Decode Float (CDAB order - word swap) ✓ CORRECT
 
 ```python
 from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(2, 2, slave=1); b = struct.pack('>HH', r.registers[1], r.registers[0]); f = struct.unpack('>f', b)[0]; print(f"Value: {f}"); c.close()
 ```
+
+This swaps the register order: uses register[1] first, then register[0]
 
 ### 4. Read All Parameters
 
