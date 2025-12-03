@@ -23,10 +23,10 @@ SLAVE_ID = int(os.getenv('SLAVE_ID', '1'))
 TIMEOUT = 2
 
 # Register addresses (holding registers for APFC relay)
-PF_REGISTER = 2          # Power Factor
-CURRENT_REGISTER = 32    # Current
-VOLTAGE_REGISTER = 38    # Voltage
-SET_PF_REGISTER = 62     # Set Power Factor
+PF_REGISTER = 0          # Power Factor
+CURRENT_REGISTER = 30    # Current
+VOLTAGE_REGISTER = 36    # Voltage
+SET_PF_REGISTER = 118    # Set Power Factor
 
 # Reading interval
 READ_INTERVAL = 1  # Read every second
