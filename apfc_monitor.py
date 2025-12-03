@@ -97,7 +97,7 @@ class APFCMonitorService:
             result = self.plc_client.read_holding_registers(
                 register_address,
                 count=2,  # Read 2 registers for 32-bit float
-                slave=self.slave_id
+                unit=self.slave_id
             )
             
             if result and not result.isError():
@@ -146,7 +146,7 @@ class APFCMonitorService:
             result = self.plc_client.write_registers(
                 register_address,
                 payload,
-                slave=self.slave_id
+                unit=self.slave_id
             )
             
             if result and not result.isError():
