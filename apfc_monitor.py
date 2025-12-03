@@ -77,6 +77,11 @@ class APFCMonitorService:
             timeout=TIMEOUT
         )
         self.slave_id = SLAVE_ID
+        # Try to set unit_id on client (for some pymodbus versions)
+        try:
+            self.plc_client.unit_id = SLAVE_ID
+        except:
+            pass
         
         # Initialize arrays to store last 10 values for each parameter
         self.power_factor_history = deque(maxlen=MAX_HISTORY)
@@ -94,11 +99,27 @@ class APFCMonitorService:
         Floats in Modbus are typically 32-bit IEEE 754, requiring 2 registers
         """
         try:
-            result = self.plc_client.read_holding_registers(
-                register_address,
-                count=2,  # Read 2 registers for 32-bit float
-                unit=self.slave_id
-            )
+            # Try different parameter names for different pymodbus versions
+            try:
+                result = self.plc_client.read_holding_registers(
+                    register_address,
+                    count=2,  # Read 2 registers for 32-bit float
+                    slave=self.slave_id
+                )
+            except TypeError:
+                # Try with 'unit' parameter (pymodbus 3.x)
+                try:
+                    result = self.plc_client.read_holding_registers(
+                        register_address,
+                        count=2,
+                        unit=self.slave_id
+                    )
+                except TypeError:
+                    # Try without parameter (uses client's unit_id)
+                    result = self.plc_client.read_holding_registers(
+                        register_address,
+                        count=2
+                    )
             
             if result and not result.isError():
                 # Decode as 32-bit float (IEEE 754)
@@ -143,11 +164,27 @@ class APFCMonitorService:
             low_word = struct.unpack('>H', raw_bytes[2:4])[0]
             payload = [high_word, low_word]
             
-            result = self.plc_client.write_registers(
-                register_address,
-                payload,
-                unit=self.slave_id
-            )
+            # Try different parameter names for different pymodbus versions
+            try:
+                result = self.plc_client.write_registers(
+                    register_address,
+                    payload,
+                    slave=self.slave_id
+                )
+            except TypeError:
+                # Try with 'unit' parameter (pymodbus 3.x)
+                try:
+                    result = self.plc_client.write_registers(
+                        register_address,
+                        payload,
+                        unit=self.slave_id
+                    )
+                except TypeError:
+                    # Try without parameter (uses client's unit_id)
+                    result = self.plc_client.write_registers(
+                        register_address,
+                        payload
+                    )
             
             if result and not result.isError():
                 return True
