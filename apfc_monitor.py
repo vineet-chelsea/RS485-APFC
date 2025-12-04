@@ -272,7 +272,7 @@ class APFCMonitorService:
         try:
             if kw < KW_THRESHOLD:
                 # Case 1: kW < 56000
-                threshold_current = (kw / voltage / sqrt3) + 10 + (voltage - 404) * 2
+                threshold_current = (kw / voltage / sqrt3) + 4 + (voltage - 404) * 2
             else:
                 # Case 2: kW >= 56000
                 threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
