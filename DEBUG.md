@@ -2,22 +2,22 @@
 
 ## Quick One-Liners for Testing
 
-### 1. Read Raw Register Values
+### 1. Read Raw Register Values (PF at address 0)
 
 ```python
-from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(2, 2, slave=1); print(f"Reg[0]={r.registers[0]}, Reg[1]={r.registers[1]}"); c.close()
+from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(0, 2, slave=1); print(f"Reg[0]={r.registers[0]}, Reg[1]={r.registers[1]}"); c.close()
 ```
 
 ### 2. Decode Float (ABCD order)
 
 ```python
-from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(2, 2, slave=1); b = struct.pack('>HH', r.registers[0], r.registers[1]); f = struct.unpack('>f', b)[0]; print(f"Value: {f}"); c.close()
+from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(0, 2, slave=1); b = struct.pack('>HH', r.registers[0], r.registers[1]); f = struct.unpack('>f', b)[0]; print(f"Value: {f}"); c.close()
 ```
 
 ### 3. Decode Float (CDAB order - word swap) ✓ CORRECT
 
 ```python
-from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(2, 2, slave=1); b = struct.pack('>HH', r.registers[1], r.registers[0]); f = struct.unpack('>f', b)[0]; print(f"Value: {f}"); c.close()
+from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); r = c.read_holding_registers(0, 2, slave=1); b = struct.pack('>HH', r.registers[1], r.registers[0]); f = struct.unpack('>f', b)[0]; print(f"Value: {f}"); c.close()
 ```
 
 This swaps the register order: uses register[1] first, then register[0]
@@ -25,13 +25,13 @@ This swaps the register order: uses register[1] first, then register[0]
 ### 4. Read All Parameters
 
 ```python
-from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); regs = [(2,'PF'),(32,'I'),(38,'V'),(62,'SetPF')]; [print(f"{n}: Reg={c.read_holding_registers(a,2,slave=1).registers}, ABCD={struct.unpack('>f',struct.pack('>HH',*c.read_holding_registers(a,2,slave=1).registers))[0]:.3f}") for a,n in regs]; c.close()
+from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); regs = [(0,'PF'),(30,'I'),(36,'V'),(118,'SetPF')]; [print(f"{n}: Reg={c.read_holding_registers(a,2,slave=1).registers}, CDAB={struct.unpack('>f',struct.pack('>HH',c.read_holding_registers(a,2,slave=1).registers[1],c.read_holding_registers(a,2,slave=1).registers[0]))[0]:.3f}") for a,n in regs]; c.close()
 ```
 
-### 5. Write and Verify
+### 5. Write and Verify (Set PF at address 118)
 
 ```python
-from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); val=-0.8; b=struct.pack('>f',val); w=[struct.unpack('>H',b[0:2])[0],struct.unpack('>H',b[2:4])[0]]; c.write_registers(62,w,slave=1); r=c.read_holding_registers(62,2,slave=1); print(f"Wrote: {val}, Read back: {struct.unpack('>f',struct.pack('>HH',*r.registers))[0]}"); c.close()
+from pymodbus.client import ModbusSerialClient; import struct; c = ModbusSerialClient(port='/dev/ttyACM0', baudrate=9600); c.connect(); val=-0.8; b=struct.pack('>f',val); w=[struct.unpack('>H',b[2:4])[0],struct.unpack('>H',b[0:2])[0]]; c.write_registers(118,w,slave=1); r=c.read_holding_registers(118,2,slave=1); print(f"Wrote: {val}, Read back: {struct.unpack('>f',struct.pack('>HH',r.registers[1],r.registers[0]))[0]}"); c.close()
 ```
 
 ## Using the Debug Script

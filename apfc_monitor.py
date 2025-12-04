@@ -35,7 +35,7 @@ MAX_HISTORY = 10   # Keep last 10 values for each parameter
 
 # PF Control parameters
 INITIAL_PF = -0.8  # Initial PF value when program starts
-MIN_PF = -0.9      # Minimum PF limit (restricted to -0.9 at upwards)
+MIN_PF = -0.93      # Minimum PF limit (restricted to -0.9 at upwards)
 PF_STEP = 0.01     # PF adjustment step
 KW_THRESHOLD = 56000  # kW threshold for different control logic
 KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
