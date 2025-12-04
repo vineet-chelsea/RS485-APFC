@@ -220,10 +220,11 @@ class APFCMonitorService:
         return False
     
     def calculate_kw(self, voltage, current, power_factor):
-        """Calculate kW = sqrt(3) * V * I * pf"""
+        """Calculate kW = sqrt(3) * V * I * |pf| (always positive)"""
         if voltage is None or current is None or power_factor is None:
             return None
-        kw = math.sqrt(3) * voltage * current * power_factor
+        # Use absolute value of power factor to ensure kW is always positive
+        kw = math.sqrt(3) * voltage * current * abs(power_factor)
         return round(kw, 2)
     
     def control_power_factor(self, voltage, current, power_factor):
