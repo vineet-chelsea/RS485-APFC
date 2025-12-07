@@ -39,11 +39,11 @@ MIN_PF = -0.93      # Minimum PF limit (restricted to -0.9 at upwards)
 PF_STEP = 0.01     # PF adjustment step
 KW_THRESHOLD = 56000  # kW threshold for different control logic
 KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
-VOLTAGE_HIGH_THRESHOLD = 430  # Voltage threshold for special condition
+VOLTAGE_HIGH_THRESHOLD = 425  # Voltage threshold for special condition
 KW_LOW_THRESHOLD = 90  # kW threshold for special condition
 KW_SPECIAL_MIN = 10000  # Minimum kW required for special condition to apply
 SPECIAL_PF = -0.4  # PF value to set when voltage > 430V and kW < 90 (only if kW > 10000)
-VOLTAGE_HIGH_THRESHOLD = 430  # Voltage threshold for special condition
+VOLTAGE_HIGH_THRESHOLD = 425  # Voltage threshold for special condition
 KW_LOW_THRESHOLD = 90  # kW threshold for special condition
 SPECIAL_PF = -0.4  # PF value to set when voltage > 430V and kW < 90
 
