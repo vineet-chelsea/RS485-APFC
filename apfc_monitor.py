@@ -41,9 +41,10 @@ KW_THRESHOLD = 56000  # kW threshold for different control logic
 KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
 VOLTAGE_HIGH_THRESHOLD = 430  # Voltage threshold for special condition
 KW_LOW_THRESHOLD = 90  # kW threshold for special condition
-SPECIAL_PF = -0.4  # PF value to set when voltage > 430V and kW < 90
+KW_SPECIAL_MIN = 10000  # Minimum kW required for special condition to apply
+SPECIAL_PF = -0.4  # PF value to set when voltage > 430V and kW < 90 (only if kW > 10000)
 VOLTAGE_HIGH_THRESHOLD = 430  # Voltage threshold for special condition
-KW_LOW_THRESHOLD = 90000  # kW threshold for special condition
+KW_LOW_THRESHOLD = 90  # kW threshold for special condition
 SPECIAL_PF = -0.4  # PF value to set when voltage > 430V and kW < 90
 
 class APFCMonitorService:
@@ -266,9 +267,10 @@ class APFCMonitorService:
             return False
         
         # Special condition: If voltage > 430V and kW < 90, set PF to -0.4
-        if voltage > VOLTAGE_HIGH_THRESHOLD and kw < KW_LOW_THRESHOLD:
+        # But only apply this condition if kW > 10000
+        if kw > KW_SPECIAL_MIN and voltage > VOLTAGE_HIGH_THRESHOLD and kw < KW_LOW_THRESHOLD:
             if abs(self.current_set_pf - SPECIAL_PF) > 0.001:
-                print(f"[CONTROL] Voltage ({voltage:.2f}V) > {VOLTAGE_HIGH_THRESHOLD}V and kW ({kw:.2f}) < {KW_LOW_THRESHOLD}, setting PF to {SPECIAL_PF}")
+                print(f"[CONTROL] kW ({kw:.2f}) > {KW_SPECIAL_MIN}, Voltage ({voltage:.2f}V) > {VOLTAGE_HIGH_THRESHOLD}V and kW ({kw:.2f}) < {KW_LOW_THRESHOLD}, setting PF to {SPECIAL_PF}")
                 self.set_power_factor(SPECIAL_PF)
             return False
         
