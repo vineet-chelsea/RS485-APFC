@@ -285,7 +285,7 @@ class APFCMonitorService:
         try:
             if kw < KW_THRESHOLD:
                 # Case 1: kW < 56000
-                threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
+                threshold_current = (kw / voltage / sqrt3) + 18 + (voltage - 404) * 2
             else:
                 # Case 2: kW >= 56000
                 threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
@@ -313,9 +313,10 @@ class APFCMonitorService:
         
         # Only update if PF changed
         if abs(new_pf - self.current_set_pf) > 0.001:
+            old_pf = self.current_set_pf
             success = self.set_power_factor(new_pf)
             if success:
-                print(f"[CONTROL] PF adjusted: {self.current_set_pf:.3f} -> {new_pf:.3f} (kW: {kw:.2f})")
+                print(f"[CONTROL] PF adjusted: {old_pf:.3f} -> {new_pf:.3f} (kW: {kw:.2f})")
                 return True
         
         return False
