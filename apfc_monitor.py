@@ -36,6 +36,7 @@ MAX_HISTORY = 10   # Keep last 10 values for each parameter
 # PF Control parameters
 INITIAL_PF = -0.8  # Initial PF value when program starts
 MIN_PF = -0.93      # Minimum PF limit (restricted to -0.9 at upwards)
+MAX_PF = -0.4      # Maximum PF limit (never goes above -0.4)
 PF_STEP = 0.01     # PF adjustment step
 KW_THRESHOLD = 56000  # kW threshold for different control logic
 KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
@@ -212,9 +213,19 @@ class APFCMonitorService:
             pf_value = MIN_PF
             print(f"[WARNING] PF would be below minimum ({pf_value:.3f} < {MIN_PF}), clamped to {MIN_PF}")
         
+        # Ensure PF is always <= -0.4 (never goes above -0.4)
+        if pf_value > MAX_PF:
+            pf_value = MAX_PF
+            print(f"[WARNING] PF would be above maximum ({pf_value:.3f} > {MAX_PF}), clamped to {MAX_PF}")
+        
         # Double check: PF must be >= -0.9
         if pf_value < MIN_PF:
             print(f"[ERROR] PF validation failed: {pf_value:.3f} is below minimum {MIN_PF}")
+            return False
+        
+        # Double check: PF must be <= -0.4
+        if pf_value > MAX_PF:
+            print(f"[ERROR] PF validation failed: {pf_value:.3f} is above maximum {MAX_PF}")
             return False
         
         success = self.write_float_register(SET_PF_REGISTER, pf_value)
@@ -299,12 +310,18 @@ class APFCMonitorService:
         # Adjust PF based on current comparison (reversed logic since PF tends to 1)
         new_pf = self.current_set_pf
         
+        # Determine step size: use 0.1 if PF is between -0.4 and -0.6, otherwise use PF_STEP
+        if -0.6 <= self.current_set_pf <= -0.4:
+            step_size = 0.1
+        else:
+            step_size = PF_STEP
+        
         if current < threshold_current:
-            new_pf += PF_STEP
-            print(f"[CONTROL] Current ({current:.3f} A) < threshold ({threshold_current:.3f} A), increasing PF")
+            new_pf += step_size
+            print(f"[CONTROL] Current ({current:.3f} A) < threshold ({threshold_current:.3f} A), increasing PF by {step_size:.2f}")
         elif current > threshold_current:
-            new_pf -= PF_STEP
-            print(f"[CONTROL] Current ({current:.3f} A) > threshold ({threshold_current:.3f} A), decreasing PF")
+            new_pf -= step_size
+            print(f"[CONTROL] Current ({current:.3f} A) > threshold ({threshold_current:.3f} A), decreasing PF by {step_size:.2f}")
         else:
             # Current is within tolerance, no adjustment needed
             return False
@@ -313,6 +330,11 @@ class APFCMonitorService:
         if new_pf < MIN_PF:
             new_pf = MIN_PF
             print(f"[CONTROL] PF would go below minimum, clamped to {MIN_PF}")
+        
+        # Ensure PF is always <= -0.4 (never goes above -0.4)
+        if new_pf > MAX_PF:
+            new_pf = MAX_PF
+            print(f"[CONTROL] PF would go above maximum, clamped to {MAX_PF}")
         
         # Only update if PF changed
         if abs(new_pf - self.current_set_pf) > 0.001:
