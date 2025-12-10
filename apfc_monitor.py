@@ -301,8 +301,10 @@ class APFCMonitorService:
                 # Case 2: kW >= 56000
                 if voltage < 420:
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 0.8
-                else:
+                elif voltage in (404,425):
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
+                else:
+                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2.6
         except ZeroDivisionError:
             print(f"[CONTROL] Division by zero error: voltage={voltage}, kw={kw}")
             return False
