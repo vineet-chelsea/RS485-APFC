@@ -301,7 +301,7 @@ class APFCMonitorService:
                 # Case 2: kW >= 56000
                 if voltage < 420:
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 0.8
-                elif voltage in (404,427):
+                elif voltage in (404,425):
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 1.7
                 else:
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2.2
