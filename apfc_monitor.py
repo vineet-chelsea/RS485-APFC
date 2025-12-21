@@ -40,7 +40,7 @@ MAX_PF = -0.4      # Maximum PF limit (never goes above -0.4)
 PF_STEP = 0.01     # PF adjustment step
 KW_THRESHOLD = 56000  # kW threshold for different control logic
 KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
-VOLTAGE_HIGH_THRESHOLD = 425  # Voltage threshold for special condition
+VOLTAGE_HIGH_THRESHOLD = 427  # Voltage threshold for special condition
 KW_LOW_THRESHOLD = 90000  # Maximum kW threshold for special condition
 KW_SPECIAL_MIN = 10000  # Minimum kW required for special condition to apply
 SPECIAL_PF = -0.4  # PF value to set when voltage > 425V and 10000 < kW < 90000
@@ -301,10 +301,10 @@ class APFCMonitorService:
                 # Case 2: kW >= 56000
                 if voltage < 420:
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 0.8
-                elif voltage in (404,425):
-                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
+                elif voltage in (404,427):
+                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 1.7
                 else:
-                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2.6
+                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2.2
         except ZeroDivisionError:
             print(f"[CONTROL] Division by zero error: voltage={voltage}, kw={kw}")
             return False
