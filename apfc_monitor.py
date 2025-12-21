@@ -36,7 +36,7 @@ MAX_HISTORY = 10   # Keep last 10 values for each parameter
 # PF Control parameters
 INITIAL_PF = -0.8  # Initial PF value when program starts
 MIN_PF = -0.93      # Minimum PF limit (restricted to -0.9 at upwards)
-MAX_PF = -0.4      # Maximum PF limit (never goes above -0.4)
+MAX_PF = -0.2     # Maximum PF limit (never goes above -0.4)
 PF_STEP = 0.01     # PF adjustment step
 KW_THRESHOLD = 56000  # kW threshold for different control logic
 KW_MIN_THRESHOLD = 5000  # Minimum kW threshold - skip control if below this
@@ -313,7 +313,7 @@ class APFCMonitorService:
         new_pf = self.current_set_pf
         
         # Determine step size: use 0.1 if PF is between -0.4 and -0.6, otherwise use PF_STEP
-        if -0.6 <= self.current_set_pf <= -0.4:
+        if -0.6 <= self.current_set_pf <= -0.2:
             step_size = 0.1
         else:
             step_size = PF_STEP
