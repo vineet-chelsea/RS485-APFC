@@ -313,7 +313,7 @@ class APFCMonitorService:
                 elif voltage < 426:
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 0.6
                 elif voltage <= 430:
-                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 1.7
+                    threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
                 else:
                     threshold_current = (kw / voltage / sqrt3) + (voltage - 404) * 2
         except ZeroDivisionError:
